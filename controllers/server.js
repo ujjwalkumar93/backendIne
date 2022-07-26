@@ -141,30 +141,93 @@ const formatDate = (date) => {
     return newDate.getTime()
 }
 const getReport = (req, res) => {
+    
+    if(req.body.fromDate === undefined || req.body.toDate === undefined ) {
+        req.body.fromDate = "01-02-2022"
+        req.body.toDate = "01-02-2024"
+    }
+
+    console.log("req.body is: ",req.body)
     AWS.config.update(config.remoteConfig);
     const docClient = new AWS.DynamoDB.DocumentClient();
     const params = {
         TableName: config.serverUsage,
-        FilterExpression: 'addedOn between  :from and :to',
+        FilterExpression: `addedOn between  :from and :to`,
+        // FilterExpression: `ip in ${x}`,
         ExpressionAttributeValues: { 
             ":from": formatDate(req.body.fromDate),
-            ":to" : formatDate(req.body.toDate)
+            ":to" : formatDate(req.body.toDate),
         }
     };
 
     docClient.scan(params, function (err, data) {
         if (err) {
+            console.log("error................", err)
             res.status(500).json({
                 error: err
             });
         } else {
-            
+            const d = prepareData(data.Items, req.body.ipList)
             res.status(200).json({
-                message : data.Items.length
+                message : d
+
             });
         }
     });
 
 }
+
+const prepareData = (dataList, ipList) => {
+    selectedIpData = []
+    const newArr = []
+    const ipGroupData = []
+    dataList.map(data => {
+        //console.log("ipList.includes(data.ip) is: ", ipList.includes(data.ip))
+        if(ipList.includes(data.ip)){
+            selectedIpData.push(data)
+        }
+        
+    })
+    let timeWiseSortedData = selectedIpData.sort((a, b) => b.addeOn - a.addeOn);
+        //console.log("sortedObjs: ", timeWiseSortedData)
+
+    const ipWiseData = timeWiseSortedData.reduce(function(results, d) {
+        (results[d.ip] = results[d.ip] || []).push(d);
+        return results;
+    }, {})
+    //console.log("result: ",results)
+    const ipData = Object.values(ipWiseData)
+    
+    //console.log("ipData.length: ",Object.values(ipWiseData).length)
+
+    return makeData(ipData,ipList)
+    //console.log("timeWiseShortedData: ",timeWiseSortedData)
+    //return newArr
+}
+
+// function check(array) {
+//     return array.reduce((r, a, i, { [i - 1]: b }) => a.map((v, j) => i
+//             ? r[j] && b[j] < v
+//             : true
+//     ), []);
+// }
+const makeData = (arr,ipList) => {
+    const readyData = []
+    for(let i= 0;i<arr.length; i++) {
+        let subData = []
+        for(let j=0;j<arr[i].length; j++) {
+            if(ipList.length - subData.length <= -1){
+                subData = []
+                subData.push(arr[i][j].addedOn)
+            } else {
+                subData.push(arr[i][j].cpu)
+            }
+            readyData.push(subData)
+            
+        }
+    }
+    return readyData
+}
+
 
 module.exports = {addServer, getServerList, deleteServer, updateServer, getServerDetails, getReport}
