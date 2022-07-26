@@ -10,7 +10,7 @@ const addMetrics = require("./controllers/script")
 const app = express();
 
 // code to send server matrics to dynmodb on every minute
-setInterval(addMetrics,1000*60*60);
+setInterval(addMetrics,1000*60*120);
 
 // middleware
 app.use(bodyParser.json());

@@ -1,5 +1,5 @@
 const express = require('express');
-const {addServer, getServerList, updateServer, deleteServer, getServerDetails} = require("../controllers/server")
+const {addServer, getServerList, updateServer, deleteServer, getServerDetails, getReport} = require("../controllers/server")
 const { body, validationResult } = require('express-validator');
 const router = express.Router();
 
@@ -15,5 +15,6 @@ router.get("/server/list", getServerList)
 router.put("/server/update/:ip", updateServer)
 router.delete("/server/delete/:ip", deleteServer)
 router.get("/server/:ip", getServerDetails)
+router.post("/usage/:name", getReport)
 
 module.exports = router;

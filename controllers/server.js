@@ -1,5 +1,6 @@
 const { check, validationResult, body } = require('express-validator');
 const {v4 : uuidv4} = require('uuid')
+const moment = require('moment')
 const AWS = require('aws-sdk');
 const config = require('../config');
 
@@ -134,4 +135,36 @@ const getServerDetails = (req, res) => {
     })
 }
 
-module.exports = {addServer, getServerList, deleteServer, updateServer, getServerDetails}
+const formatDate = (date) => {
+    const myDate = date.split("/");
+    const newDate = new Date( myDate[2], myDate[1] - 1, myDate[0]);
+    return newDate.getTime()
+}
+const getReport = (req, res) => {
+    AWS.config.update(config.remoteConfig);
+    const docClient = new AWS.DynamoDB.DocumentClient();
+    const params = {
+        TableName: config.serverUsage,
+        FilterExpression: 'addedOn between  :from and :to',
+        ExpressionAttributeValues: { 
+            ":from": formatDate(req.body.fromDate),
+            ":to" : formatDate(req.body.toDate)
+        }
+    };
+
+    docClient.scan(params, function (err, data) {
+        if (err) {
+            res.status(500).json({
+                error: err
+            });
+        } else {
+            
+            res.status(200).json({
+                message : data.Items.length
+            });
+        }
+    });
+
+}
+
+module.exports = {addServer, getServerList, deleteServer, updateServer, getServerDetails, getReport}
