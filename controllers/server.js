@@ -3,6 +3,7 @@ const {v4 : uuidv4} = require('uuid')
 const moment = require('moment')
 const AWS = require('aws-sdk');
 const config = require('../config');
+const moment = require('moment');
 
 const addServer = (req, res) => {
     const errors = validationResult(req)
@@ -108,31 +109,37 @@ const deleteServer = (req, res) => {
     })
 }
 
+
 const getServerDetails = (req, res) => {
     AWS.config.update(config.remoteConfig);
     const docClient = new AWS.DynamoDB.DocumentClient();
+    const ipObject = {};
+    let index = 0;
+    req.body.ipList.forEach(function(value) {
+        index++;
+        const ipKey = ":ip"+index;
+        ipObject[ipKey.toString()] = value;
+    });
+
     const params = {
-        TableName: config.serverUsage,
-        FilterExpression: "#ip = :ip",
-        ExpressionAttributeNames: {
-            "#ip": "ip",
-        },
-        ExpressionAttributeValues: {
-            ":ip": req.params.ip,
-        },
-    }
+        TableName : config.serverUsage,
+        FilterExpression : "ip IN ("+Object.keys(ipObject).toString()+ ")",
+        ExpressionAttributeValues : ipObject
+    };
+
     docClient.scan(params, function(err, data){
         if(err){
             return res.status(500).json({
                 error: err
             })
         } else {
-            //console.log("data", data)
+            const dataList = data.Items.sort((a, b) => parseFloat(a.addedOn) - parseFloat(b.addedOn));
             return res.status(200).json({
-                message: data.Items
+                message: dataList
             })
         }
     })
+
 }
 
 const formatDate = (date) => {
