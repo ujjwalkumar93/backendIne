@@ -1,5 +1,5 @@
 const express = require('express');
-const {addServer, getServerList, updateServer, deleteServer, getServerDetails, getReport} = require("../controllers/server")
+const {addServer, getServerList, updateServer, deleteServer,getServerDetails} = require("../controllers/server")
 const { body, validationResult } = require('express-validator');
 const router = express.Router();
 
@@ -14,7 +14,9 @@ router.post("/server/add", [
 router.get("/server/list", getServerList)
 router.put("/server/update/:ip", updateServer)
 router.delete("/server/delete/:ip", deleteServer)
-router.get("/server/:ip", getServerDetails)
-router.post("/usage/:name", getReport)
+//router.get("/server/:ip", getServerDetails)
+router.post("/usage/:reportName",[
+    body("ipList").custom((value, { req }) => {!Array.isArray(value)}).withMessage("body must contain iplist of array datatype")
+], getServerDetails)
 
 module.exports = router;
