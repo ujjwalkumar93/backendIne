@@ -3,7 +3,7 @@ const {v4 : uuidv4} = require('uuid')
 const moment = require('moment')
 const AWS = require('aws-sdk');
 const config = require('../config');
-const moment = require('moment');
+// const moment = require('moment');
 
 const addServer = (req, res) => {
     const errors = validationResult(req)
@@ -134,9 +134,42 @@ const getServerDetails = (req, res) => {
             })
         } else {
             const dataList = data.Items.sort((a, b) => parseFloat(a.addedOn) - parseFloat(b.addedOn));
-            return res.status(200).json({
-                message: dataList
+            // console.log("dataList is: ", dataList)
+            //new code added
+            const labels = dataList.map(d => {
+                return moment(d.addedOn).format('DD/MM/YYYY h:mm:ss')
+              })
+            // const distinctIp = []
+            let ipWiseData = {}
+            dataList.forEach(d => { 
+                if (!(d.ip in ipWiseData)){
+                    ipWiseData[d.ip] = []
+                }
             })
+
+            if(["cpu","disk","memory"].includes(req.params.reportName)){
+                const reporName = req.params.reportName
+                dataList.forEach(d => { 
+                    ipWiseData[d.ip].push(d[reporName])
+                    const objKeyList = Object.keys(ipWiseData)
+                    const ipToPushDefaultValue = objKeyList.filter(function(ip) {
+                        return ip !== d.ip
+                    })
+                    ipToPushDefaultValue.forEach(d => {
+                        ipWiseData[d].push(0)
+                    })
+                })
+                
+                return res.status(200).json({
+                    message: {
+                        labels: labels,
+                        dataset:ipWiseData
+                    }
+                })
+            } else {
+                return res.status(200).json({"error": "chart name must be cpu,disk or memory"})
+            }   
+            
         }
     })
 
