@@ -50,6 +50,7 @@ const pushData = (ip,cpu, memory, disk) => {
             console.error({error: err})
         } else {
             console.log({data: item})
+            console.log(item)
         }
     })
 }

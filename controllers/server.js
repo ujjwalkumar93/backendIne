@@ -1,5 +1,6 @@
 const { check, validationResult, body } = require('express-validator');
 const {v4 : uuidv4} = require('uuid')
+var randomColor = require('randomcolor');
 const moment = require('moment')
 const AWS = require('aws-sdk');
 const config = require('../config');
@@ -113,25 +114,26 @@ const deleteServer = (req, res) => {
 const getServerDetails = (req, res) => {
     let unixFrom = Date.now() - (6 * 60 * 60 * 1000)
     let unixTo = Date.now();
-    if(req.body.fromDate && req.body.toDate) {
-        unixFrom = fromDate(req.body.fromDate)
+    if(req.body.fromDate && req.body.toDate){
+        unixFrom = formatDate(req.body.fromDate)
         unixTo = formatDate(req.body.toDate)
-    }
+    } 
+
+     
+    // if(req.body.fromDate == "Invalid Date" || req.body.toDate == "Invalid Date")  {
+    //     unixFrom = formatDate(req.body.fromDate)
+    //     unixTo = formatDate(req.body.toDate)
+    // }
     AWS.config.update(config.remoteConfig);
     const docClient = new AWS.DynamoDB.DocumentClient();
     const ipObject = {};
     let index = 0;
-    req.body.ipList.forEach(function(value) {
+    // if(req.body.ipList){
+        req.body.ipList.forEach(function(value) {
         index++;
         const ipKey = ":ip"+index;
         ipObject[ipKey.toString()] = value;
     });
-
-    // const params = {
-    //     TableName : config.serverUsage,
-    //     FilterExpression : "ip IN ("+Object.keys(ipObject).toString()+ ")",
-    //     ExpressionAttributeValues : ipObject
-    // };
 
     const params = {
         TableName : config.serverUsage,
@@ -150,8 +152,6 @@ const getServerDetails = (req, res) => {
             })
         } else {
             const dataList = data.Items.sort((a, b) => parseFloat(a.addedOn) - parseFloat(b.addedOn));
-            // console.log("dataList is: ", dataList)
-            //new code added
             const labels = dataList.map(d => {
                 return moment(d.addedOn).format('DD/MM/YYYY h:mm:ss')
               })
@@ -175,11 +175,30 @@ const getServerDetails = (req, res) => {
                         ipWiseData[d].push(0)
                     })
                 })
+
                 
+                const colorList = ['rgb(255,0,255)','rgb(0,100,0)','rgb(255, 99, 132)','rgb(255,69,0)','rgb(153,50,204)','rgb(72,61,139)','rgb(25,25,112)','rgb(0,139,139)','rgb(46,139,87)','rgb(128,128,0)']
+                const datasets = []
+                Object.keys(ipWiseData).map( (i,p) => {
+                    let color;
+                    if(p < colorList.length) {
+                        color = colorList[p]
+                    } else {
+                        color = randomColor()
+                    }
+                    datasets.push({
+                        "label":i,
+                        "data": ipWiseData[i],
+                        //borderColor: 'rgb(255, 99, 132)', backgroundColor: 'rgba(255, 99, 132, 0.5)', borderWidth: 0.5
+                        borderColor : color,
+                        borderWidth: 0.5,
+                        backgroundColor : color.slice(0, -1)+", 0.5)"
+                    })
+                })
                 return res.status(200).json({
                     message: {
-                        labels: labels,
-                        dataset:ipWiseData
+                        labels,
+                        datasets
                     }
                 })
             } else {
@@ -192,7 +211,6 @@ const getServerDetails = (req, res) => {
 }
 
 const formatDate = (date) => {
-    console.log("date is: ", date)
     const myDate = date.split("/");
     const newDate = new Date( myDate[2], myDate[1] - 1, myDate[0]);
     return newDate.getTime()
