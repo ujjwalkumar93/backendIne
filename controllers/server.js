@@ -111,6 +111,12 @@ const deleteServer = (req, res) => {
 
 
 const getServerDetails = (req, res) => {
+    let unixFrom = Date.now() - (6 * 60 * 60 * 1000)
+    let unixTo = Date.now();
+    if(req.body.fromDate && req.body.toDate) {
+        unixFrom = fromDate(req.body.fromDate)
+        unixTo = formatDate(req.body.toDate)
+    }
     AWS.config.update(config.remoteConfig);
     const docClient = new AWS.DynamoDB.DocumentClient();
     const ipObject = {};
@@ -133,8 +139,8 @@ const getServerDetails = (req, res) => {
         //ExpressionAttributeValues : ipObject
         ExpressionAttributeValues: { 
             ...ipObject,
-            ":from": formatDate(req.body.fromDate),
-            ":to" : formatDate(req.body.toDate),
+            ":from": unixFrom,
+            ":to" : unixTo,
         }
     };
     docClient.scan(params, function(err, data){
@@ -186,6 +192,7 @@ const getServerDetails = (req, res) => {
 }
 
 const formatDate = (date) => {
+    console.log("date is: ", date)
     const myDate = date.split("/");
     const newDate = new Date( myDate[2], myDate[1] - 1, myDate[0]);
     return newDate.getTime()
