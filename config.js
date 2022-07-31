@@ -1,9 +1,10 @@
+require('dotenv').config()
 module.exports = {
     tableName: 'server',
     serverUsage: 'serverUsage',
     remoteConfig: {
-      accessKeyId: 'AKIAUSC4LKYUVGNWOLJH',
-      secretAccessKey: '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',
-      region: 'us-east-1',
+      accessKeyId: process.env.DBACCESSID,
+      secretAccessKey: process.env.DBACCESSKEY,
+      region: process.env.REGION,
     }
 };
